@@ -1,0 +1,246 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Template for building a EC2 instances and related components with their setup.
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: Ec2 instance cofiguration details
+        Parameters: 
+            - VpcId
+            - vpcCIDR
+            - SubnetIds
+            - AmiId
+            - InstanceType
+            - EncryptionKeyId
+            - ServerName
+            - ApplicationPortNumber
+            - AppTrafficSource
+            - SshTrafficSource
+            - SshKeyName
+            - InstanceCount
+      - Label:
+          default: Required details
+        Parameters:
+          - ZoneName
+          - AccountCode
+          - Env
+
+Parameters:
+  Env:
+    Type: String
+    Description: SDLC Environment
+    AllowedValues:
+      - DEV
+      - UAT
+      - PROD
+  ZoneName:
+    Type: String
+    Description: Application zone name
+    AllowedValues:
+      - Business
+      - Wallet
+      - Validation
+      - Sign
+  AccountCode:
+    Type: String
+    Description: Code for current account. Eg. for Production Business Zone account, B1
+  ServerName:
+    Type: String
+    Description: Name of the server
+    AllowedValues:
+      - WEBSVR
+      - NGINX
+      - BUSMGR
+      - BUSNOD
+      - NAMSVR
+      - BKRMAS
+      - BKRSLV
+      - SYSLOG
+      - ONMSRV
+      - WALSRV
+      - SYSLOG
+      - ETHR
+      - VALSVR
+      - SIGSVR
+      - SIGPRX
+  vpcCIDR:
+    Type: String
+    Description: CIDR range of the VPC
+  ApplicationPortNumber:
+      Type: Number
+      Description: The port number on which application will receive the traffic.
+      Default: 80
+  EncryptionKeyId:
+    Type: String
+    Description: Customer managed KMS key Id 
+  SubnetIds:
+    Description: Subnet Id to launch the DB server.
+    Type: List<AWS::EC2::Subnet::Id>
+  VpcId:
+    Description: VPC Id to launch the server.
+    Type: AWS::EC2::VPC::Id
+  AmiId:
+    Description: Base image Id to launch the server
+    Type: AWS::EC2::Image::Id
+  InstanceCount:
+    Description: Number of instances to be launched for this application.
+    Type: Number
+  InstanceType:
+    Description: Instance type for the server.
+    Type: String
+    AllowedValues:
+      - t3.medium
+      - t3.xlarge
+      - t3.2xlarge
+      - m5.large
+      - m5.xlarge
+      - m5.2xlarge
+  SshKeyName:
+    Description: Name of SSH key for the server.
+    Type: AWS::EC2::KeyPair::KeyName
+  SshTrafficSource:
+    Type: String
+    Description: CIDR range for SSH traffic source 
+  AppTrafficSource:
+    Type: String
+    Description: Security group id for traffic source for application port
+
+Mappings:
+  RegionMapping:
+    eu-west-1:
+      RegionCode: EW1
+    eu-west-2:
+      RegionCode: EW2
+
+Conditions:
+  IsProd:
+    !Equals [ !Ref Env, 'PROD' ]
+  MultiLaunch:
+    !Equals [!Ref InstanceCount, 2]
+
+Resources:
+  Ec2SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties: 
+      GroupDescription: !Join [' ', ['Security group for', !Ref ServerName ]] 
+      GroupName: !Join ['-',[SG, !Ref AccountCode, !FindInMap [RegionMapping, !Ref "AWS::Region", RegionCode], !Ref ServerName, 001 ]]
+      VpcId: !Ref VpcId
+      SecurityGroupIngress: 
+      - IpProtocol: tcp
+        FromPort: 22
+        ToPort: 22
+        CidrIp: !Ref SshTrafficSource
+      - IpProtocol: tcp
+        FromPort: !Ref ApplicationPortNumber
+        ToPort: !Ref ApplicationPortNumber
+        SourceSecurityGroupId: !Ref AppTrafficSource
+      Tags:
+        - Key: Name
+          Value: !Join ['-',[SG, !Ref AccountCode, !FindInMap [RegionMapping, !Ref "AWS::Region", RegionCode], !Ref ServerName, 001 ]]
+        - Key: blackfridge:environment
+          Value: !Ref Env
+        - Key: blackfridge:zone
+          Value: !Ref ZoneName
+        - Key: blackfridge:cost-code
+          Value: NA
+
+  Ec2InstanceRole:
+    Type: AWS::IAM::Role
+    Properties: 
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ec2.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      ManagedPolicyArns: 
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+        - arn:aws:iam::aws:policy/AmazonS3FullAccess
+        - arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy
+        - arn:aws:iam::aws:policy/service-role/AmazonEC2RoleforAWSCodeDeploy
+      Policies: 
+        - PolicyName: 'Ec2-role-policy'
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Resource: '*'
+                Action: 
+                  - kms:ConnectCustomKeyStore
+                  - kms:Decrypt
+                  - kms:DescribeCustomKeyStores
+                  - kms:DescribeKey
+                  - kms:Encrypt
+                  - kms:GenerateDataKey
+                  - kms:GenerateDataKeyPair
+                  - kms:GetKeyPolicy
+                  - kms:GetPublicKey
+                  - kms:ImportKeyMaterial
+                  - kms:ListKeys
+                  - kms:Verify
+      Path: /
+      RoleName: !Join ['-',[IAM, !Ref AccountCode, !FindInMap [RegionMapping, !Ref "AWS::Region", RegionCode], !Ref ServerName, 001 ]]
+      Tags: 
+        - Key: Name
+          Value: !Join ['-',[IAM, !Ref AccountCode, !FindInMap [RegionMapping, !Ref "AWS::Region", RegionCode], !Ref ServerName, 001 ]]
+        - Key: blackfridge:environment
+          Value: !Ref Env
+        - Key: blackfridge:zone
+          Value: !Ref ZoneName
+        - Key: blackfridge:cost-code
+          Value: NA
+
+  Ec2InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties: 
+      InstanceProfileName: !Join ['-',[IAM, !Ref AccountCode, !FindInMap [RegionMapping, !Ref "AWS::Region", RegionCode], !Ref ServerName, 001 ]]
+      Path: /
+      Roles: 
+        - !Ref Ec2InstanceRole
+
+  Ec2Instance01:
+    Type: AWS::EC2::Instance
+    Properties: 
+      DisableApiTermination: !If [IsProd, true, false]
+      IamInstanceProfile: !Ref Ec2InstanceProfile
+      ImageId: !Ref AmiId
+      InstanceType: !Ref InstanceType
+      KeyName: !Ref SshKeyName
+      SecurityGroupIds: 
+        - !Ref Ec2SecurityGroup
+      SubnetId: !Select [0, !Ref SubnetIds]
+      Tags: 
+        - Key: Name
+          Value: !Join ['-',[EC2, !Ref AccountCode, !FindInMap [RegionMapping, !Ref "AWS::Region", RegionCode], !Ref ServerName, 001 ]]
+        - Key: blackfridge:environment
+          Value: !Ref Env
+        - Key: blackfridge:zone
+          Value: !Ref ZoneName
+        - Key: blackfridge:cost-code
+          Value: NA
+
+  Ec2Instance02:
+    Condition: MultiLaunch
+    Type: AWS::EC2::Instance
+    Properties: 
+      DisableApiTermination: !If [ IsProd, true, false ]
+      IamInstanceProfile: !Ref Ec2InstanceProfile
+      ImageId: !Ref AmiId
+      InstanceType: !Ref InstanceType
+      KeyName: !Ref SshKeyName
+      SecurityGroupIds: 
+        - !Ref Ec2SecurityGroup
+      SubnetId: !Select [1, !Ref SubnetIds]
+      Tags: 
+        - Key: Name
+          Value: !Join ['-',[EC2, !Ref AccountCode, !FindInMap [RegionMapping, !Ref "AWS::Region", RegionCode], !Ref ServerName, 002 ]]
+        - Key: blackfridge:environment
+          Value: !Ref Env
+        - Key: blackfridge:zone
+          Value: !Ref ZoneName
+        - Key: blackfridge:cost-code
+          Value: NA

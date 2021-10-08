@@ -1,0 +1,317 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Template for creating VPC and related network resources in Sign zone account
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: VPC Configuration Details
+        Parameters: 
+            - vpcCIDR
+      - Lable:
+          default: VPC traffic logging details
+        Parameters:
+            - RetentionPeriod
+            - TrafficType
+      - Lable:
+          default: VPC Peering Details
+        Parameters:
+          - PeerVPCAccountId
+          - PeerVPCId
+          - PeerRoleArn
+      - Label:
+          default: Required Parameters
+        Parameters:
+            - Env
+            - ZoneName
+            - AccountCode
+
+    ParameterLabels:
+      vpcCIDR:
+        default: IP Range for VPC to be created
+      Env:
+        default: SDLC Environment of this VPC
+      PeerVPCAccountId:
+        default: Account Id for an AWS account containing the Peer VPC
+      PeerVPCId:
+        default: Peer VPC Id (created in Peer AWS account)
+      PeerRoleArn:
+        default: ARN for IAM role created in Peer AWS account
+
+Parameters:
+  vpcCIDR:
+    Type: String
+    Description: IP Range in CIDR format
+    AllowedPattern: '^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/([0-9]|[1-2][0-9]|3[0-2]))$'
+  Env:
+    Type: String
+    Description: SDLC Environment
+    AllowedValues:
+      - UAT
+      - PROD
+  PeerVPCAccountId:
+    Type: String
+  PeerVPCId:
+    Type: String
+  PeerRoleArn:
+    Type: String
+  ZoneName:
+    Type: String
+    Description: Application zone name
+    AllowedValues:
+      - Business
+      - Wallet
+      - Validation
+      - Sign
+  AccountCode:
+    Type: String
+    Description: Code for current account. Eg. for Production Business Zone account, B1
+  RetentionPeriod:
+    Type: Integer
+    Description: VPC traffic logs' retention period in Days
+  TrafficType:
+    Type: String
+    Description: Type of traffic to be logged in VPC Flow Logs
+    AllowedValues:
+      - ACCEPT
+      - ALL
+      - REJECT
+
+Mappings:
+  RegionMapping:
+    eu-west-1:
+      RegionCode: EW1
+    eu-west-2:
+      RegionCode: EW2
+
+Resources:
+  VPC:
+    Type: 'AWS::EC2::VPC'
+    Properties:
+      CidrBlock: !Ref vpcCIDR
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      InstanceTenancy: default
+      Tags:
+        - Key: Name
+          Value: !Join ['-',[VPC, !Ref AccountCode, !FindInMap [RegionMapping, !Ref "AWS::Region", RegionCode], 001 ]]
+        - Key: blackfridge:environment
+          Value: !Ref Env
+        - Key: blackfridge:zone
+          Value: !Ref ZoneName
+        - Key: blackfridge:cost-code
+          Value: 
+  WebSubnet1:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !Select [ 0, !Cidr [ !Ref vpcCIDR, 1, 6 ]]
+      MapPublicIpOnLaunch: true
+      AvailabilityZone: !Select 
+        - 0
+        - !GetAZs 
+          Ref: 'AWS::Region'
+      Tags: 
+        - Key: Name
+          Value: !Join ['-',[SUB, !Ref AccountCode, !FindInMap [RegionMapping, !Ref "AWS::Region", RegionCode], WEBSUB-001 ]]
+        - Key: blackfridge:environment
+          Value: !Ref Env
+        - Key: blackfridge:zone
+          Value: !Ref ZoneName
+        - Key: blackfridge:cost-code
+          Value: 
+  AppSubnet1:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !Select [ 1, !Cidr [ !Ref vpcCIDR, 1, 6 ]]
+      MapPublicIpOnLaunch: false
+      AvailabilityZone: !Select 
+        - 0
+        - !GetAZs 
+          Ref: 'AWS::Region'
+      Tags: 
+        - Key: Name
+          Value: !Join ['-',[SUB, !Ref AccountCode, !FindInMap [RegionMapping, !Ref "AWS::Region", RegionCode], APPSUB-001 ]]
+        - Key: blackfridge:environment
+          Value: !Ref Env
+        - Key: blackfridge:zone
+          Value: !Ref ZoneName
+        - Key: blackfridge:cost-code
+          Value: 
+  AppSubnet2:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !Select [ 2, !Cidr [ !Ref vpcCIDR, 1, 6 ]]
+      MapPublicIpOnLaunch: false
+      AvailabilityZone: !Select 
+        - 1
+        - !GetAZs 
+          Ref: 'AWS::Region'
+      Tags: 
+        - Key: Name
+          Value: !Join ['-',[SUB, !Ref AccountCode, !FindInMap [RegionMapping, !Ref "AWS::Region", RegionCode], APPSUB-002 ]]
+        - Key: blackfridge:environment
+          Value: !Ref Env
+        - Key: blackfridge:zone
+          Value: !Ref ZoneName
+        - Key: blackfridge:cost-code
+          Value: 
+  
+  InternetGateway:
+    Type: 'AWS::EC2::InternetGateway'
+    Properties:
+      Tags: 
+        - Key: Name
+          Value: !Join ['-',[IGW, !Ref AccountCode, !FindInMap [RegionMapping, !Ref "AWS::Region", RegionCode], IGW-001 ]]
+        - Key: blackfridge:environment
+          Value: !Ref Env
+        - Key: blackfridge:zone
+          Value: !Ref ZoneName
+        - Key: blackfridge:cost-code
+          Value: 
+  InternetGatewayAttachment:
+    Type: 'AWS::EC2::VPCGatewayAttachment'
+    Properties: 
+      InternetGatewayId: !Ref InternetGateway
+      VpcId: !Ref VPC
+  WebRouteTable:
+    Type: 'AWS::EC2::RouteTable'
+    Properties: 
+      VpcId: !Ref VPC
+      Tags: 
+        - Key: Name
+          Value: !Join ['-',[RTB, !Ref AccountCode, !FindInMap [RegionMapping, !Ref "AWS::Region", RegionCode], WEB-001 ]]
+        - Key: blackfridge:environment
+          Value: !Ref Env
+        - Key: blackfridge:zone
+          Value: !Ref ZoneName
+        - Key: blackfridge:cost-code
+          Value:      
+  WebRoute:
+    Type: 'AWS::EC2::Route'
+    Properties: 
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+      RouteTableId: !Ref WebRouteTable
+  WebSubnet1RouteTableAssociation:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties: 
+      RouteTableId: !Ref WebRouteTable
+      SubnetId: !Ref WebSubnet1
+  
+  NatGateway:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      SubnetId: !Ref WebSubnet1
+      Tags: 
+        - Key: Name
+          Value: !Join ['-',[NGW, !Ref AccountCode, !FindInMap [RegionMapping, !Ref "AWS::Region", RegionCode], NATGW-001 ]]
+        - Key: blackfridge:environment
+          Value: !Ref Env
+        - Key: blackfridge:zone
+          Value: !Ref ZoneName
+        - Key: blackfridge:cost-code
+          Value: 
+  AppRouteTable:
+    Type: 'AWS::EC2::RouteTable'
+    Properties: 
+      VpcId: !Ref VPC
+      Tags: 
+        - Key: Name
+          Value: !Join ['-',[RTB, !Ref AccountCode, !FindInMap [RegionMapping, !Ref "AWS::Region", RegionCode], APP-001 ]]
+        - Key: blackfridge:environment
+          Value: !Ref Env
+        - Key: blackfridge:zone
+          Value: !Ref ZoneName
+        - Key: blackfridge:cost-code
+          Value:      
+  AppRoute:
+    Type: 'AWS::EC2::Route'
+    Properties: 
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref NatGateway
+      RouteTableId: !Ref AppRouteTable
+  AppSubnet1RouteTableAssociation:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties: 
+      RouteTableId: !Ref AppRouteTable
+      SubnetId: !Ref AppSubnet1
+  AppSubnet2RouteTableAssociation: 
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties: 
+      RouteTableId: !Ref AppRouteTable
+      SubnetId: !Ref AppSubnet2
+  
+  vpcPeeringConnection:
+    Type: 'AWS::EC2::VPCPeeringConnection'
+    Properties:
+      VpcId: !Ref vpc
+      PeerVpcId: !Ref PeerVPCId
+      PeerOwnerId: !Ref PeerVPCAccountId
+      PeerRoleArn: !Ref PeerRoleArn
+
+  # Enable VPC flow logs
+  FlowLogRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: 'vpc-flow-logs.amazonaws.com'
+          Action: 'sts:AssumeRole'
+      Policies:
+        - PolicyName: 'flowlogs-policy'
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+            - Effect: Allow
+              Resource: !GetAtt 'LogGroup.Arn'
+              Action:
+              - 'logs:CreateLogStream'
+              - 'logs:PutLogEvents'
+              - 'logs:DescribeLogGroups'
+              - 'logs:DescribeLogStreams'
+      RoleName: !Join ['-',[IAM, !Ref AccountCode, !FindInMap [RegionMapping, !Ref "AWS::Region", RegionCode], FLWROL-001 ]]
+      Tags:
+        - Key: Name
+          Value: !Join ['-',[IAM, !Ref AccountCode, !FindInMap [RegionMapping, !Ref "AWS::Region", RegionCode], FLWROL-001 ]]
+        - Key: blackfridge:environment
+          Value: !Ref Env
+        - Key: blackfridge:zone
+          Value: !Ref ZoneName
+        - Key: blackfridge:cost-code
+          Value: 
+  FlowLogsLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties: 
+      LogGroupName: !Join ['-',[LOG, !Ref AccountCode, !FindInMap [RegionMapping, !Ref "AWS::Region", RegionCode], FLWLOG-001 ]]
+      RetentionInDays: !Ref RetentionPeriod
+  FlowLog:
+    Type: 'AWS::EC2::FlowLog'
+    Properties:
+      DeliverLogsPermissionArn: !GetAtt 'PeerRole.Arn'
+      LogGroupName: !Ref FlowLogsLogGroup
+      ResourceId: !Ref VPC
+      ResourceType: 'VPC'
+      TrafficType: !Ref TrafficType
+
+Output:
+  VPC:
+    Description: Vpc id 
+      Value: !Ref VPC
+      Export:
+        Name: VPC
+  AppSubnet1:
+    Description: First Application subnet id
+      Value: !Ref AppSubnet1
+      Export:
+        Name: AppSubnet1
+  AppSubnet2:
+    Description: Second Application subnet id
+      Value: !Ref AppSubnet2
+      Export:
+        Name: AppSubnet2

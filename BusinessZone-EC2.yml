@@ -1,0 +1,280 @@
+Parameters:
+  InstanceTypeParameter:
+    Type: String
+    AllowedValues:
+      - t3.medium
+      - t3.xlarge
+      - t3.2xlarge
+      - m5.large
+      - m5.xlarge
+      - m5.2xlarge
+    Description: Enter t3.medium, t3.xlarge, t3.2xlarge, m5.large, m5.xlarge, or m5.2xlarge.
+  SubnetParameters:
+    Type: String
+    AllowedValues:
+      - AppSubnet1
+      - AppSubnet2
+      - DbSubnet1
+      - DbSubnet2
+    Description: available subnet.
+Resources:
+  Ec2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: !Ref InstanceTypeParameter
+      ImageId: String
+      KeyName: String
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: 32
+            Encrypted: True
+            KmsKeyId: String
+      NetworkInterfaces:
+        - DeviceIndex: '0'
+          AssociatePublicIpAddress: true
+          DeleteOnTermination: true
+          SubnetId: !Ref  SubnetParameters
+          #GroupSet:
+          #  - !Ref Web01SG
+      Tags:
+        - Key: Name
+          Value: !Join ['-',[EC2, !Ref AccountCode, !FindInMap [RegionMapping, !Ref "AWS::Region", RegionCode], NGXSVR-001]]
+        - Key: blackfridge:environment
+          Value: !Ref Env
+        - Key: blackfridge:zone
+          Value: !Ref ZoneName
+        - Key: blackfridge:cost-code
+          Value:
+          
+  Ec2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: !Ref InstanceTypeParameter
+      ImageId: String
+      KeyName: String
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: 32
+            Encrypted: True
+            KmsKeyId: String
+      NetworkInterfaces:
+        - DeviceIndex: '0'
+          AssociatePublicIpAddress: true
+          DeleteOnTermination: true
+          SubnetId: !Ref  SubnetParameters
+          #GroupSet:
+          #  - !Ref Web01SG
+      Tags:
+        - Key: Name
+          Value: !Join ['-',[EC2, !Ref AccountCode, !FindInMap [RegionMapping, !Ref "AWS::Region", RegionCode], NGXSVR-002]]
+        - Key: blackfridge:environment
+          Value: !Ref Env
+        - Key: blackfridge:zone
+          Value: !Ref ZoneName
+        - Key: blackfridge:cost-code
+          Value:
+  
+  Ec2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: !Ref InstanceTypeParameter
+      ImageId: String
+      KeyName: String
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: 32
+            Encrypted: True
+            KmsKeyId: String
+      NetworkInterfaces:
+        - DeviceIndex: '0'
+          AssociatePublicIpAddress: true
+          DeleteOnTermination: true
+          SubnetId: !Ref  SubnetParameters
+          #GroupSet:
+          #  - !Ref Web01SG
+      Tags:
+        - Key: Name
+          Value: !Join ['-',[EC2, !Ref AccountCode, !FindInMap [RegionMapping, !Ref "AWS::Region", RegionCode], WEBSVR-001]]
+        - Key: blackfridge:environment
+          Value: !Ref Env
+        - Key: blackfridge:zone
+          Value: !Ref ZoneName
+        - Key: blackfridge:cost-code
+          Value:
+          
+  Ec2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: !Ref InstanceTypeParameter
+      ImageId: String
+      KeyName: String
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: 32
+            Encrypted: True
+            KmsKeyId: String
+      NetworkInterfaces:
+        - DeviceIndex: '0'
+          AssociatePublicIpAddress: true
+          DeleteOnTermination: true
+          SubnetId: !Ref  SubnetParameters
+          #GroupSet:
+          #  - !Ref Web01SG
+      Tags:
+        - Key: Name
+          Value: !Join ['-',[EC2, !Ref AccountCode, !FindInMap [RegionMapping, !Ref "AWS::Region", RegionCode], WEBSVR-002]]
+        - Key: blackfridge:environment
+          Value: !Ref Env
+        - Key: blackfridge:zone
+          Value: !Ref ZoneName
+        - Key: blackfridge:cost-code
+          Value:
+
+  Ec2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: !Ref InstanceTypeParameter
+      ImageId: String
+      KeyName: String
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: 32
+            Encrypted: True
+            KmsKeyId: String
+      NetworkInterfaces:
+        - DeviceIndex: '0'
+          AssociatePublicIpAddress: true
+          DeleteOnTermination: true
+          SubnetId: !Ref  SubnetParameters
+          #GroupSet:
+          #  - !Ref Web01SG
+      Tags:
+        - Key: Name
+          Value: !Join ['-',[EC2, !Ref AccountCode, !FindInMap [RegionMapping, !Ref "AWS::Region", RegionCode], K8SMGR-001]]
+        - Key: blackfridge:environment
+          Value: !Ref Env
+        - Key: blackfridge:zone
+          Value: !Ref ZoneName
+        - Key: blackfridge:cost-code
+          Value:
+
+  Ec2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: !Ref InstanceTypeParameter
+      ImageId: String
+      KeyName: String
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: 32
+            Encrypted: True
+            KmsKeyId: String
+      NetworkInterfaces:
+        - DeviceIndex: '0'
+          AssociatePublicIpAddress: true
+          DeleteOnTermination: true
+          SubnetId: !Ref  SubnetParameters
+          #GroupSet:
+          #  - !Ref Web01SG
+      Tags:
+        - Key: Name
+          Value: !Join ['-',[EC2, !Ref AccountCode, !FindInMap [RegionMapping, !Ref "AWS::Region", RegionCode], K8SNOD-001]]
+        - Key: blackfridge:environment
+          Value: !Ref Env
+        - Key: blackfridge:zone
+          Value: !Ref ZoneName
+        - Key: blackfridge:cost-code
+          Value:
+
+  Ec2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: !Ref InstanceTypeParameter
+      ImageId: String
+      KeyName: String
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: 32
+            Encrypted: True
+            KmsKeyId: String
+      NetworkInterfaces:
+        - DeviceIndex: '0'
+          AssociatePublicIpAddress: true
+          DeleteOnTermination: true
+          SubnetId: !Ref  SubnetParameters
+          #GroupSet:
+          #  - !Ref Web01SG
+      Tags:
+        - Key: Name
+          Value: !Join ['-',[EC2, !Ref AccountCode, !FindInMap [RegionMapping, !Ref "AWS::Region", RegionCode], K8SNOD-002]]
+        - Key: blackfridge:environment
+          Value: !Ref Env
+        - Key: blackfridge:zone
+          Value: !Ref ZoneName
+        - Key: blackfridge:cost-code
+          Value:
+
+  Ec2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: !Ref InstanceTypeParameter
+      ImageId: String
+      KeyName: String
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: 32
+            Encrypted: True
+            KmsKeyId: String
+      NetworkInterfaces:
+        - DeviceIndex: '0'
+          AssociatePublicIpAddress: true
+          DeleteOnTermination: true
+          SubnetId: !Ref  SubnetParameters
+          #GroupSet:
+          #  - !Ref Web01SG
+      Tags:
+        - Key: Name
+          Value: !Join ['-',[EC2, !Ref AccountCode, !FindInMap [RegionMapping, !Ref "AWS::Region", RegionCode], NMESVR-001]]
+        - Key: blackfridge:environment
+          Value: !Ref Env
+        - Key: blackfridge:zone
+          Value: !Ref ZoneName
+        - Key: blackfridge:cost-code
+          Value:
+
+  Ec2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: !Ref InstanceTypeParameter
+      ImageId: String
+      KeyName: String
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: 32
+            Encrypted: True
+            KmsKeyId: String
+      NetworkInterfaces:
+        - DeviceIndex: '0'
+          AssociatePublicIpAddress: true
+          DeleteOnTermination: true
+          SubnetId: !Ref  SubnetParameters
+          #GroupSet:
+          #  - !Ref Web01SG
+      Tags:
+        - Key: Name
+          Value: !Join ['-',[EC2, !Ref AccountCode, !FindInMap [RegionMapping, !Ref "AWS::Region", RegionCode], NMESVR-002]]
+        - Key: blackfridge:environment
+          Value: !Ref Env
+        - Key: blackfridge:zone
+          Value: !Ref ZoneName
+        - Key: blackfridge:cost-code
+          Value:

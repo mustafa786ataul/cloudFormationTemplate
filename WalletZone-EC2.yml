@@ -1,0 +1,69 @@
+Parameters:
+  InstanceTypeParameter:
+    Type: String
+    AllowedValues:
+      - t3.medium
+      - t3.xlarge
+      - t3.2xlarge
+      - m5.large
+      - m5.xlarge
+      - m5.2xlarge
+    Description: Enter t3.medium, t3.xlarge, t3.2xlarge, m5.large, m5.xlarge, or m5.2xlarge.
+Resources:
+  Ec2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: !Ref InstanceTypeParameter
+      ImageId: String
+      KeyName: String
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: 32
+            Encrypted: True
+            KmsKeyId: String
+      NetworkInterfaces:
+        - DeviceIndex: '0'
+          AssociatePublicIpAddress: true
+          DeleteOnTermination: true
+          SubnetId: !Ref AppSubnet1
+          #GroupSet:
+          #  - !Ref Web01SG
+      Tags:
+        - Key: Name
+          Value: !Join ['-',[EC2, !Ref AccountCode, !FindInMap [RegionMapping, !Ref "AWS::Region", RegionCode], WLTSVR-001]]
+        - Key: blackfridge:environment
+          Value: !Ref Env
+        - Key: blackfridge:zone
+          Value: !Ref ZoneName
+        - Key: blackfridge:cost-code
+          Value:
+          
+  Ec2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: !Ref InstanceTypeParameter
+      ImageId: String
+      KeyName: String
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: 32
+            Encrypted: True
+            KmsKeyId: String
+      NetworkInterfaces:
+        - DeviceIndex: '0'
+          AssociatePublicIpAddress: true
+          DeleteOnTermination: true
+          SubnetId: !Ref AppSubnet1
+          #GroupSet:
+          #  - !Ref Web01SG
+      Tags:
+        - Key: Name
+          Value: !Join ['-',[EC2, !Ref AccountCode, !FindInMap [RegionMapping, !Ref "AWS::Region", RegionCode], WLTSVR-001]]
+        - Key: blackfridge:environment
+          Value: !Ref Env
+        - Key: blackfridge:zone
+          Value: !Ref ZoneName
+        - Key: blackfridge:cost-code
+          Value:
